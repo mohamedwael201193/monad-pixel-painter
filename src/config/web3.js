@@ -1,6 +1,6 @@
 // Web3 Configuration for Monad Testnet
 export const MONAD_TESTNET_CONFIG = {
-  chainId: 41454, // Monad Testnet Chain ID
+  chainId: 10143, // Monad Testnet Chain ID
   name: 'Monad Testnet',
   currency: 'MON',
   explorerUrl: 'https://testnet-explorer.monad.xyz',
