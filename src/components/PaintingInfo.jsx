@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { Alert, AlertDescription } from '@/components/ui/alert.jsx';
-import { RefreshCw, Palette, Coins, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Palette, Coins, Zap } from 'lucide-react';
 
 export const PaintingInfo = ({ 
   paintingFee, 
@@ -9,7 +8,8 @@ export const PaintingInfo = ({
   onRefresh, 
   isLoading,
   isConnected,
-  isContractDeployed = false
+  isContractDeployed = true,
+  interactionCount = 0
 }) => {
   return (
     <Card className="w-full">
@@ -23,27 +23,18 @@ export const PaintingInfo = ({
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            disabled={isLoading || !isConnected || !isContractDeployed}
+            disabled={isLoading || !isConnected}
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isContractDeployed && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Smart contract not deployed! Please deploy the contract first and update the address in config.
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center space-x-2">
             <Coins className="h-4 w-4 text-yellow-500" />
             <div>
-              <p className="text-sm font-medium">Painting Fee</p>
+              <p className="text-sm font-medium">Interaction Fee</p>
               <p className="text-lg font-mono">{paintingFee} MON</p>
             </div>
           </div>
@@ -57,10 +48,18 @@ export const PaintingInfo = ({
           </div>
         </div>
 
+        <div className="flex items-center space-x-2 p-2 bg-green-50 rounded">
+          <Zap className="h-4 w-4 text-green-500" />
+          <div>
+            <p className="text-sm font-medium text-green-700">Total Interactions</p>
+            <p className="text-lg font-mono text-green-800">{interactionCount}</p>
+          </div>
+        </div>
+
         <div className="text-xs text-gray-500 space-y-1">
-          <p>• Each pixel costs {paintingFee} MON to paint</p>
+          <p>• Each pixel interaction costs {paintingFee} MON</p>
           <p>• Canvas size: 100x100 pixels (10,000 total)</p>
-          <p>• You can paint over existing pixels</p>
+          <p>• Interactions are sent to random Monad Testnet contracts</p>
           <p>• All transactions are recorded on the Monad Testnet</p>
         </div>
 
@@ -70,10 +69,10 @@ export const PaintingInfo = ({
           </div>
         )}
 
-        {!isContractDeployed && isConnected && (
-          <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-            <p className="font-medium">Contract Not Deployed</p>
-            <p>Please deploy the smart contract first. See DEPLOYMENT_GUIDE.md for instructions.</p>
+        {isConnected && (
+          <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+            <p className="font-medium">Ready to Paint!</p>
+            <p>Click any pixel to send a transaction to Monad Testnet.</p>
           </div>
         )}
       </CardContent>

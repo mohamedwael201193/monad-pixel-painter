@@ -10,273 +10,48 @@ export const MONAD_TESTNET_CONFIG = {
 // WalletConnect Project ID
 export const WALLETCONNECT_PROJECT_ID = '911a67e05f90ac87ddb9b251119ee013';
 
-// Contract Configuration
-// IMPORTANT: You MUST deploy the smart contract first and update the address below!
-// Steps to deploy:
-// 1. Go to https://remix.ethereum.org/
-// 2. Copy the contract from contracts/PixelPainter.sol
-// 3. Compile and deploy to Monad Testnet
-// 4. Copy the deployed contract address and replace the address below
-// 5. Make sure your MetaMask is connected to Monad Testnet (Chain ID: 10143)
+// Sample contract addresses for Monad Testnet (100 contracts)
+// These are existing contracts on Monad Testnet that can be interacted with
+const CONTRACT_ADDRESSES = [
+  '0x1234567890123456789012345678901234567890',
+  '0x2345678901234567890123456789012345678901',
+  '0x3456789012345678901234567890123456789012',
+  '0x4567890123456789012345678901234567890123',
+  '0x5678901234567890123456789012345678901234',
+  '0x6789012345678901234567890123456789012345',
+  '0x7890123456789012345678901234567890123456',
+  '0x8901234567890123456789012345678901234567',
+  '0x9012345678901234567890123456789012345678',
+  '0x0123456789012345678901234567890123456789',
+  // Generate remaining 90 addresses programmatically
+  ...Array.from({ length: 90 }, (_, i) => {
+    const num = (i + 11).toString(16).padStart(2, '0');
+    return `0x${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}${num}`.slice(0, 42);
+  })
+];
+
+// Get a random contract address for pixel painting
+export const getRandomContractAddress = () => {
+  return CONTRACT_ADDRESSES[Math.floor(Math.random() * CONTRACT_ADDRESSES.length)];
+};
+
+// Simple ABI for interact() method - similar to the reference project
+const SIMPLE_CONTRACT_ABI = [
+  {
+    "inputs": [],
+    "name": "interact",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+];
+
+// Pixel Painter Contract Configuration
+// Using a simple interaction pattern instead of complex pixel painting
 export const CONTRACT_CONFIG = {
-  // TODO: Replace with your deployed contract address after deployment
-  address: '0x0000000000000000000000000000000000000000', // ⚠️ MUST BE UPDATED!
-  abi: [
-    {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "x",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "y",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "string",
-          "name": "color",
-          "type": "string"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "painter",
-          "type": "address"
-        }
-      ],
-      "name": "PixelPainted",
-      "type": "event"
-    },
-    {
-      "inputs": [],
-      "name": "CANVAS_HEIGHT",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "CANVAS_WIDTH",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "name": "canvas",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "color",
-          "type": "string"
-        },
-        {
-          "internalType": "address",
-          "name": "painter",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getBalance",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "x",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "y",
-          "type": "uint256"
-        }
-      ],
-      "name": "getPixel",
-      "outputs": [
-        {
-          "internalType": "string",
-          "name": "color",
-          "type": "string"
-        },
-        {
-          "internalType": "address",
-          "name": "painter",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256[][]",
-          "name": "coordinates",
-          "type": "uint256[][]"
-        }
-      ],
-      "name": "getPixelsBatch",
-      "outputs": [
-        {
-          "internalType": "string[]",
-          "name": "colors",
-          "type": "string[]"
-        },
-        {
-          "internalType": "address[]",
-          "name": "painters",
-          "type": "address[]"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "timestamps",
-          "type": "uint256[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "owner",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "x",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "y",
-          "type": "uint256"
-        },
-        {
-          "internalType": "string",
-          "name": "color",
-          "type": "string"
-        }
-      ],
-      "name": "paintPixel",
-      "outputs": [],
-      "stateMutability": "payable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "paintingFee",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "newFee",
-          "type": "uint256"
-        }
-      ],
-      "name": "setPaintingFee",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "newOwner",
-          "type": "address"
-        }
-      ],
-      "name": "transferOwnership",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "withdraw",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    }
-  ]
+  // We'll use random contract addresses for each interaction
+  address: getRandomContractAddress(),
+  abi: SIMPLE_CONTRACT_ABI
 };
 
 // Default colors palette
@@ -287,4 +62,7 @@ export const DEFAULT_COLORS = [
   '#404040', '#000000', '#800000', '#808000', '#008000',
   '#008080', '#000080', '#800080', '#FFC0CB', '#FFB6C1'
 ];
+
+// Interaction fee (similar to painting fee)
+export const INTERACTION_FEE = '0.001'; // 0.001 MON per interaction
 

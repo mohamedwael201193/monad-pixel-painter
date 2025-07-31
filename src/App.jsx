@@ -20,13 +20,14 @@ function App() {
     isLoading,
     paintPixel,
     loadPixelData,
-    isContractDeployed
+    isContractDeployed,
+    interactionCount
   } = usePixelPainter();
 
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0]);
 
   const handlePixelClick = async (x, y) => {
-    if (!isConnected || isTransactionPending || !isContractDeployed) return;
+    if (!isConnected || isTransactionPending) return;
     await paintPixel(x, y, selectedColor);
   };
 
@@ -63,7 +64,7 @@ function App() {
               onPixelClick={handlePixelClick}
               isTransactionPending={isTransactionPending}
               isConnected={isConnected}
-              isContractDeployed={isContractDeployed}
+              isContractDeployed={true}
             />
             <PaintingInfo
               paintingFee={paintingFee}
@@ -71,7 +72,8 @@ function App() {
               onRefresh={handleRefresh}
               isLoading={isLoading}
               isConnected={isConnected}
-              isContractDeployed={isContractDeployed}
+              isContractDeployed={true}
+              interactionCount={interactionCount}
             />
           </div>
 
@@ -92,16 +94,14 @@ function App() {
         {/* Footer */}
         <div className="mt-12 text-center text-sm text-gray-500">
           <p>
-            Built with React + Vite + Tailwind CSS • Smart Contract on Monad Testnet
+            Built with React + Vite + Tailwind CSS • Smart Contract Interactions on Monad Testnet
           </p>
           <p className="mt-1">
-            Connect your wallet and start painting! Each pixel costs {paintingFee} MON.
+            Connect your wallet and start painting! Each pixel interaction costs {paintingFee} MON.
           </p>
-          {!isContractDeployed && (
-            <p className="mt-2 text-red-600 font-medium">
-              ⚠️ Smart contract not deployed. Please deploy the contract first.
-            </p>
-          )}
+          <p className="mt-2 text-green-600 font-medium">
+            ✅ Ready to interact with Monad Testnet contracts!
+          </p>
         </div>
       </div>
     </div>

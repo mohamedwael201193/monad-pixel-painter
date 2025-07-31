@@ -1,143 +1,69 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useWeb3 } from './useWeb3.js';
+import { getRandomContractAddress, INTERACTION_FEE } from '../config/web3.js';
 
 export const usePixelPainter = () => {
-  const { contract, isConnected, account } = useWeb3();
+  const { provider, isConnected, account } = useWeb3();
   const [pixelData, setPixelData] = useState({});
   const [isTransactionPending, setIsTransactionPending] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState(null);
-  const [paintingFee, setPaintingFee] = useState('0');
+  const [paintingFee, setPaintingFee] = useState(INTERACTION_FEE);
   const [isLoading, setIsLoading] = useState(false);
+  const [interactionCount, setInteractionCount] = useState(0);
 
-  // Check if contract is properly deployed
+  // Simple contract ABI for interact() method
+  const CONTRACT_ABI = [
+    {
+      "inputs": [],
+      "name": "interact",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    }
+  ];
+
+  // Check if we can interact (provider is available)
   const isContractDeployed = useCallback(() => {
-    const deployed = contract && contract.target !== '0x0000000000000000000000000000000000000000';
-    console.log('isContractDeployed:', deployed, 'Contract target:', contract ? contract.target : 'N/A');
-    return deployed;
-  }, [contract]);
+    const canInteract = !!provider && isConnected;
+    console.log('Can interact with contracts:', canInteract, 'Provider:', !!provider, 'Connected:', isConnected);
+    return canInteract;
+  }, [provider, isConnected]);
 
-  // Load painting fee
+  // Load painting fee (static value)
   const loadPaintingFee = useCallback(async () => {
-    console.log('Attempting to load painting fee...');
-    if (!contract || !isContractDeployed()) {
-      console.log('Contract not ready or not deployed, setting fee to 0.');
-      setPaintingFee('0');
-      return;
-    }
+    console.log('Setting static painting fee:', INTERACTION_FEE);
+    setPaintingFee(INTERACTION_FEE);
+  }, []);
 
-    try {
-      const fee = await contract.paintingFee();
-      setPaintingFee(ethers.formatEther(fee));
-      console.log('Painting fee loaded:', ethers.formatEther(fee));
-    } catch (error) {
-      console.error('Failed to load painting fee:', error);
-      if (error.message.includes('could not decode result data')) {
-        setTransactionStatus({
-          type: 'error',
-          message: 'Smart contract not deployed. Please deploy the contract first and update the address in config.'
-        });
-      }
-      setPaintingFee('0');
-    }
-  }, [contract, isContractDeployed]);
-
-  // Load pixel data from contract
-  const loadPixelData = useCallback(async (coordinates = null) => {
-    console.log('Attempting to load pixel data...');
-    if (!contract || !isContractDeployed()) {
-      console.log('Contract not ready or not deployed, skipping pixel data load.');
-      return;
-    }
-
+  // Load pixel data (simulate from local storage or generate random)
+  const loadPixelData = useCallback(async () => {
+    console.log('Loading pixel data from local storage...');
     setIsLoading(true);
+    
     try {
-      if (coordinates && coordinates.length > 0) {
-        console.log('Loading specific pixels:', coordinates);
-        const [colors, painters, timestamps] = await contract.getPixelsBatch(coordinates);
-        
-        const newPixelData = { ...pixelData };
-        coordinates.forEach((coord, index) => {
-          const [x, y] = coord;
-          const key = `${x}-${y}`;
-          if (colors[index] && colors[index] !== '') {
-            newPixelData[key] = {
-              color: colors[index],
-              painter: painters[index],
-              timestamp: Number(timestamps[index])
-            };
-          }
-        });
-        setPixelData(newPixelData);
-        console.log('Specific pixels loaded.');
+      // Try to load from localStorage
+      const savedPixelData = localStorage.getItem('monad-pixel-data');
+      if (savedPixelData) {
+        const parsed = JSON.parse(savedPixelData);
+        setPixelData(parsed);
+        console.log('Loaded pixel data from localStorage:', Object.keys(parsed).length, 'pixels');
       } else {
-        console.log('Loading all pixels (batch mode)...');
-        const newPixelData = {};
-        const batchSize = 100; // Load in batches to avoid gas limit issues
-        
-        for (let batch = 0; batch < 100; batch++) { // 100 batches of 100 pixels each
-          const coordinates = [];
-          for (let i = 0; i < batchSize; i++) {
-            const pixelIndex = batch * batchSize + i;
-            if (pixelIndex >= 10000) break; // 100x100 = 10,000 pixels
-            
-            const x = pixelIndex % 100;
-            const y = Math.floor(pixelIndex / 100);
-            coordinates.push([x, y]);
-          }
-          
-          if (coordinates.length === 0) break;
-          
-          try {
-            const [colors, painters, timestamps] = await contract.getPixelsBatch(coordinates);
-            
-            coordinates.forEach((coord, index) => {
-              const [x, y] = coord;
-              const key = `${x}-${y}`;
-              if (colors[index] && colors[index] !== '') {
-                newPixelData[key] = {
-                  color: colors[index],
-                  painter: painters[index],
-                  timestamp: Number(timestamps[index])
-                };
-              }
-            });
-          } catch (error) {
-            console.error(`Failed to load batch ${batch}:`, error);
-            break; // Stop loading if we hit an error
-          }
-        }
-        
-        setPixelData(newPixelData);
-        console.log('All pixels loaded.');
+        console.log('No saved pixel data found.');
       }
     } catch (error) {
       console.error('Failed to load pixel data:', error);
-      if (error.message.includes('could not decode result data')) {
-        setTransactionStatus({
-          type: 'error',
-          message: 'Smart contract not deployed. Please deploy the contract first and update the address in config.'
-        });
-      }
     } finally {
       setIsLoading(false);
     }
-  }, [contract, pixelData, isContractDeployed]);
+  }, []);
 
-  // Paint a pixel - Optimized for immediate MetaMask popup
+  // Paint a pixel - Using simple contract interaction
   const paintPixel = useCallback(async (x, y, color) => {
     console.log(`Attempting to paint pixel (${x}, ${y}) with color ${color}...`);
-    if (!contract || !isConnected || isTransactionPending) {
-      console.log('Paint pixel conditions not met:', { contract: !!contract, isConnected, isTransactionPending });
-      return false;
-    }
-
-    if (!isContractDeployed()) {
-      console.log('Contract not deployed, cannot paint pixel.');
-      setTransactionStatus({
-        type: 'error',
-        message: 'Smart contract not deployed. Please deploy the contract first and update the address in config.'
-      });
+    
+    if (!provider || !isConnected || isTransactionPending) {
+      console.log('Paint pixel conditions not met:', { provider: !!provider, isConnected, isTransactionPending });
       return false;
     }
 
@@ -147,25 +73,24 @@ export const usePixelPainter = () => {
     console.log('Transaction pending state set.');
 
     try {
-      // Get current painting fee first (this should be fast if cached)
-      let fee;
-      try {
-        console.log('Fetching painting fee...');
-        fee = await contract.paintingFee();
-        console.log('Painting fee fetched:', ethers.formatEther(fee));
-      } catch (error) {
-        console.error('Failed to get painting fee:', error);
-        throw new Error('Could not get painting fee. Contract may not be deployed.');
-      }
+      // Get a random contract address for this interaction
+      const contractAddress = getRandomContractAddress();
+      console.log('Using contract address:', contractAddress);
 
-      // Immediately call the paintPixel function - this will trigger MetaMask popup
+      // Create contract instance
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, CONTRACT_ABI, signer);
+
+      // Set transaction status
       setTransactionStatus({ type: 'pending', message: 'Please confirm transaction in MetaMask...' });
-      console.log('Calling contract.paintPixel...');
+      console.log('Calling contract.interact() with fee:', INTERACTION_FEE);
       
-      const tx = await contract.paintPixel(x, y, color, {
-        value: fee,
-        gasLimit: 300000 // Set a reasonable gas limit
+      // Call the interact function with a small fee
+      const tx = await contract.interact({
+        value: ethers.parseEther(INTERACTION_FEE),
+        gasLimit: 100000 // Set a reasonable gas limit
       });
+      
       console.log('Transaction sent, waiting for confirmation:', tx.hash);
 
       // Transaction was sent successfully (user confirmed in MetaMask)
@@ -186,16 +111,35 @@ export const usePixelPainter = () => {
         });
         console.log('Pixel painted successfully!');
 
-        // Update local pixel data immediately for better UX
+        // Update local pixel data and save to localStorage
         const key = `${x}-${y}`;
-        setPixelData(prev => ({
-          ...prev,
-          [key]: {
-            color,
-            painter: account,
-            timestamp: Math.floor(Date.now() / 1000)
+        const newPixelData = {
+          color,
+          painter: account,
+          timestamp: Math.floor(Date.now() / 1000),
+          txHash: tx.hash,
+          contractAddress
+        };
+
+        setPixelData(prev => {
+          const updated = {
+            ...prev,
+            [key]: newPixelData
+          };
+          
+          // Save to localStorage
+          try {
+            localStorage.setItem('monad-pixel-data', JSON.stringify(updated));
+            console.log('Pixel data saved to localStorage.');
+          } catch (error) {
+            console.error('Failed to save pixel data to localStorage:', error);
           }
-        }));
+          
+          return updated;
+        });
+
+        // Increment interaction count
+        setInteractionCount(prev => prev + 1);
         console.log('Local pixel data updated.');
 
         return true;
@@ -215,8 +159,6 @@ export const usePixelPainter = () => {
         errorMessage = 'Insufficient funds for transaction';
       } else if (error.message.includes('user rejected') || error.message.includes('User denied')) {
         errorMessage = 'Transaction rejected by user';
-      } else if (error.message.includes('could not decode result data')) {
-        errorMessage = 'Smart contract not deployed. Please deploy the contract first.';
       } else if (error.message.includes('network')) {
         errorMessage = 'Network error. Please check your connection and try again.';
       } else if (error.message.includes('gas')) {
@@ -239,51 +181,19 @@ export const usePixelPainter = () => {
         console.log('Transaction status cleared.');
       }, 5000);
     }
-  }, [contract, isConnected, isTransactionPending, account, isContractDeployed]);
+  }, [provider, isConnected, isTransactionPending, account, CONTRACT_ABI]);
 
-  // Load initial data when contract is available
+  // Load initial data when provider is available
   useEffect(() => {
-    console.log('useEffect: Contract or connection status changed.');
-    if (contract && isConnected && isContractDeployed()) {
-      console.log('useEffect: Contract ready and connected, loading painting fee.');
+    console.log('useEffect: Provider or connection status changed.');
+    if (provider && isConnected) {
+      console.log('useEffect: Provider ready and connected, loading data.');
       loadPaintingFee();
-      // Don't load all pixels initially to avoid performance issues
-      // loadPixelData();
+      loadPixelData();
     } else {
-      console.log('useEffect: Contract not ready or not connected, skipping initial load.');
+      console.log('useEffect: Provider not ready or not connected, skipping initial load.');
     }
-  }, [contract, isConnected, loadPaintingFee, isContractDeployed]);
-
-  // Listen for PixelPainted events
-  useEffect(() => {
-    console.log('useEffect: Setting up event listener.');
-    if (!contract || !isContractDeployed()) {
-      console.log('Contract not ready for event listener.');
-      return;
-    }
-
-    const handlePixelPainted = (x, y, color, painter, event) => {
-      console.log('PixelPainted event received:', { x, y, color, painter, event });
-      const key = `${x}-${y}`;
-      setPixelData(prev => ({
-        ...prev,
-        [key]: {
-          color,
-          painter,
-          timestamp: Math.floor(Date.now() / 1000)
-        }
-      }));
-    };
-
-    // Listen for events
-    contract.on('PixelPainted', handlePixelPainted);
-    console.log('PixelPainted event listener attached.');
-
-    return () => {
-      contract.off('PixelPainted', handlePixelPainted);
-      console.log('PixelPainted event listener detached.');
-    };
-  }, [contract, isContractDeployed]);
+  }, [provider, isConnected, loadPaintingFee, loadPixelData]);
 
   return {
     pixelData,
@@ -294,7 +204,8 @@ export const usePixelPainter = () => {
     paintPixel,
     loadPixelData,
     loadPaintingFee,
-    isContractDeployed: isContractDeployed()
+    isContractDeployed: isContractDeployed(),
+    interactionCount
   };
 };
 
