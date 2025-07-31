@@ -4,6 +4,7 @@ import { ColorPalette } from './components/ColorPalette.jsx';
 import { PixelCanvas } from './components/PixelCanvas.jsx';
 import { TransactionStatus } from './components/TransactionStatus.jsx';
 import { PaintingInfo } from './components/PaintingInfo.jsx';
+import { QuickPaintButton } from './components/QuickPaintButton.jsx';
 import { useWeb3 } from './hooks/useWeb3.js';
 import { usePixelPainter } from './hooks/usePixelPainter.js';
 import { DEFAULT_COLORS } from './config/web3.js';
@@ -56,6 +57,13 @@ function App() {
             <ColorPalette 
               selectedColor={selectedColor}
               onColorSelect={setSelectedColor}
+            />
+            <QuickPaintButton
+              selectedColor={selectedColor}
+              onPixelClick={handlePixelClick}
+              isTransactionPending={isTransactionPending}
+              isConnected={isConnected}
+              isContractDeployed={isContractDeployed}
             />
             <PaintingInfo
               paintingFee={paintingFee}

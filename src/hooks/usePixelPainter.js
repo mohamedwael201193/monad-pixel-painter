@@ -114,7 +114,7 @@ export const usePixelPainter = () => {
     }
   }, [contract, pixelData, isContractDeployed]);
 
-  // Paint a pixel
+  // Paint a pixel - Optimized for immediate MetaMask popup
   const paintPixel = useCallback(async (x, y, color) => {
     if (!contract || !isConnected || isTransactionPending) {
       return false;
@@ -128,22 +128,32 @@ export const usePixelPainter = () => {
       return false;
     }
 
+    // Set pending state immediately to prevent multiple clicks
     setIsTransactionPending(true);
-    setTransactionStatus({ type: 'pending', message: 'Transaction pending...' });
+    setTransactionStatus({ type: 'pending', message: 'Preparing transaction...' });
 
     try {
-      // Get current painting fee
-      const fee = await contract.paintingFee();
+      // Get current painting fee first (this should be fast if cached)
+      let fee;
+      try {
+        fee = await contract.paintingFee();
+      } catch (error) {
+        console.error('Failed to get painting fee:', error);
+        throw new Error('Could not get painting fee. Contract may not be deployed.');
+      }
+
+      // Immediately call the paintPixel function - this will trigger MetaMask popup
+      setTransactionStatus({ type: 'pending', message: 'Please confirm transaction in MetaMask...' });
       
-      // Call the paintPixel function
       const tx = await contract.paintPixel(x, y, color, {
         value: fee,
         gasLimit: 300000 // Set a reasonable gas limit
       });
 
+      // Transaction was sent successfully (user confirmed in MetaMask)
       setTransactionStatus({ 
         type: 'pending', 
-        message: `Transaction submitted: ${tx.hash}` 
+        message: `Transaction submitted: ${tx.hash.slice(0, 10)}...` 
       });
 
       // Wait for transaction confirmation
@@ -156,7 +166,7 @@ export const usePixelPainter = () => {
           message: 'Pixel painted successfully!' 
         });
 
-        // Update local pixel data
+        // Update local pixel data immediately for better UX
         const key = `${x}-${y}`;
         setPixelData(prev => ({
           ...prev,
@@ -175,14 +185,20 @@ export const usePixelPainter = () => {
       console.error('Failed to paint pixel:', error);
       
       let errorMessage = 'Transaction failed';
-      if (error.code === 'ACTION_REJECTED') {
+      
+      // Handle different types of errors
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
         errorMessage = 'Transaction rejected by user';
       } else if (error.message.includes('insufficient funds')) {
         errorMessage = 'Insufficient funds for transaction';
-      } else if (error.message.includes('user rejected')) {
+      } else if (error.message.includes('user rejected') || error.message.includes('User denied')) {
         errorMessage = 'Transaction rejected by user';
       } else if (error.message.includes('could not decode result data')) {
         errorMessage = 'Smart contract not deployed. Please deploy the contract first.';
+      } else if (error.message.includes('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('gas')) {
+        errorMessage = 'Gas estimation failed. Please try again.';
       }
 
       setTransactionStatus({ 

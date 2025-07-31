@@ -47,10 +47,22 @@ export const PixelCanvas = ({
     setIsDragging(false);
   }, []);
 
-  // Handle pixel click
+  // Handle pixel click - Optimized for immediate MetaMask popup
   const handlePixelClick = useCallback((x, y, e) => {
     e.stopPropagation();
-    if (!isConnected || isTransactionPending) return;
+    
+    // Immediate validation checks
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    
+    if (isTransactionPending) {
+      alert('Please wait for the current transaction to complete');
+      return;
+    }
+    
+    // Call the paint function immediately - this will trigger MetaMask popup
     onPixelClick(x, y);
   }, [isConnected, isTransactionPending, onPixelClick]);
 
