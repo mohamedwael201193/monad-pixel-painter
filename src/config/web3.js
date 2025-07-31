@@ -11,9 +11,16 @@ export const MONAD_TESTNET_CONFIG = {
 export const WALLETCONNECT_PROJECT_ID = '911a67e05f90ac87ddb9b251119ee013';
 
 // Contract Configuration
+// IMPORTANT: You MUST deploy the smart contract first and update the address below!
+// Steps to deploy:
+// 1. Go to https://remix.ethereum.org/
+// 2. Copy the contract from contracts/PixelPainter.sol
+// 3. Compile and deploy to Monad Testnet
+// 4. Copy the deployed contract address and replace the address below
+// 5. Make sure your MetaMask is connected to Monad Testnet (Chain ID: 10143)
 export const CONTRACT_CONFIG = {
-  // This will be updated after contract deployment
-  address: '0x0000000000000000000000000000000000000000',
+  // TODO: Replace with your deployed contract address after deployment
+  address: '0x0000000000000000000000000000000000000000', // ⚠️ MUST BE UPDATED!
   abi: [
     {
       "inputs": [],

@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button.jsx';
-import { RefreshCw, Palette, Coins } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert.jsx';
+import { RefreshCw, Palette, Coins, AlertTriangle } from 'lucide-react';
 
 export const PaintingInfo = ({ 
   paintingFee, 
   pixelCount, 
   onRefresh, 
   isLoading,
-  isConnected 
+  isConnected,
+  isContractDeployed = false
 }) => {
   return (
     <Card className="w-full">
@@ -21,13 +23,22 @@ export const PaintingInfo = ({
             variant="outline"
             size="sm"
             onClick={onRefresh}
-            disabled={isLoading || !isConnected}
+            disabled={isLoading || !isConnected || !isContractDeployed}
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isContractDeployed && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Smart contract not deployed! Please deploy the contract first and update the address in config.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center space-x-2">
             <Coins className="h-4 w-4 text-yellow-500" />
@@ -56,6 +67,13 @@ export const PaintingInfo = ({
         {!isConnected && (
           <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
             Connect your wallet to see real-time data and start painting
+          </div>
+        )}
+
+        {!isContractDeployed && isConnected && (
+          <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+            <p className="font-medium">Contract Not Deployed</p>
+            <p>Please deploy the smart contract first. See DEPLOYMENT_GUIDE.md for instructions.</p>
           </div>
         )}
       </CardContent>

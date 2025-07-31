@@ -18,13 +18,14 @@ function App() {
     paintingFee,
     isLoading,
     paintPixel,
-    loadPixelData
+    loadPixelData,
+    isContractDeployed
   } = usePixelPainter();
 
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0]);
 
   const handlePixelClick = async (x, y) => {
-    if (!isConnected || isTransactionPending) return;
+    if (!isConnected || isTransactionPending || !isContractDeployed) return;
     await paintPixel(x, y, selectedColor);
   };
 
@@ -62,6 +63,7 @@ function App() {
               onRefresh={handleRefresh}
               isLoading={isLoading}
               isConnected={isConnected}
+              isContractDeployed={isContractDeployed}
             />
           </div>
 
@@ -87,6 +89,11 @@ function App() {
           <p className="mt-1">
             Connect your wallet and start painting! Each pixel costs {paintingFee} MON.
           </p>
+          {!isContractDeployed && (
+            <p className="mt-2 text-red-600 font-medium">
+              ⚠️ Smart contract not deployed. Please deploy the contract first.
+            </p>
+          )}
         </div>
       </div>
     </div>

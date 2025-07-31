@@ -10,21 +10,37 @@ export const usePixelPainter = () => {
   const [paintingFee, setPaintingFee] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if contract is properly deployed
+  const isContractDeployed = useCallback(() => {
+    return contract && contract.target !== '0x0000000000000000000000000000000000000000';
+  }, [contract]);
+
   // Load painting fee
   const loadPaintingFee = useCallback(async () => {
-    if (!contract) return;
+    if (!contract || !isContractDeployed()) {
+      setPaintingFee('0');
+      return;
+    }
 
     try {
       const fee = await contract.paintingFee();
       setPaintingFee(ethers.formatEther(fee));
     } catch (error) {
       console.error('Failed to load painting fee:', error);
+      // If we can't load the fee, it likely means the contract isn't deployed
+      if (error.message.includes('could not decode result data')) {
+        setTransactionStatus({
+          type: 'error',
+          message: 'Smart contract not deployed. Please deploy the contract first and update the address in config.'
+        });
+      }
+      setPaintingFee('0');
     }
-  }, [contract]);
+  }, [contract, isContractDeployed]);
 
   // Load pixel data from contract
   const loadPixelData = useCallback(async (coordinates = null) => {
-    if (!contract) return;
+    if (!contract || !isContractDeployed()) return;
 
     setIsLoading(true);
     try {
@@ -87,14 +103,28 @@ export const usePixelPainter = () => {
       }
     } catch (error) {
       console.error('Failed to load pixel data:', error);
+      if (error.message.includes('could not decode result data')) {
+        setTransactionStatus({
+          type: 'error',
+          message: 'Smart contract not deployed. Please deploy the contract first and update the address in config.'
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [contract, pixelData]);
+  }, [contract, pixelData, isContractDeployed]);
 
   // Paint a pixel
   const paintPixel = useCallback(async (x, y, color) => {
     if (!contract || !isConnected || isTransactionPending) {
+      return false;
+    }
+
+    if (!isContractDeployed()) {
+      setTransactionStatus({
+        type: 'error',
+        message: 'Smart contract not deployed. Please deploy the contract first and update the address in config.'
+      });
       return false;
     }
 
@@ -151,6 +181,8 @@ export const usePixelPainter = () => {
         errorMessage = 'Insufficient funds for transaction';
       } else if (error.message.includes('user rejected')) {
         errorMessage = 'Transaction rejected by user';
+      } else if (error.message.includes('could not decode result data')) {
+        errorMessage = 'Smart contract not deployed. Please deploy the contract first.';
       }
 
       setTransactionStatus({ 
@@ -167,20 +199,20 @@ export const usePixelPainter = () => {
         setTransactionStatus(null);
       }, 5000);
     }
-  }, [contract, isConnected, isTransactionPending, account]);
+  }, [contract, isConnected, isTransactionPending, account, isContractDeployed]);
 
   // Load initial data when contract is available
   useEffect(() => {
-    if (contract && isConnected) {
+    if (contract && isConnected && isContractDeployed()) {
       loadPaintingFee();
       // Don't load all pixels initially to avoid performance issues
       // loadPixelData();
     }
-  }, [contract, isConnected, loadPaintingFee]);
+  }, [contract, isConnected, loadPaintingFee, isContractDeployed]);
 
   // Listen for PixelPainted events
   useEffect(() => {
-    if (!contract) return;
+    if (!contract || !isContractDeployed()) return;
 
     const handlePixelPainted = (x, y, color, painter, event) => {
       const key = `${x}-${y}`;
@@ -200,7 +232,7 @@ export const usePixelPainter = () => {
     return () => {
       contract.off('PixelPainted', handlePixelPainted);
     };
-  }, [contract]);
+  }, [contract, isContractDeployed]);
 
   return {
     pixelData,
@@ -210,7 +242,8 @@ export const usePixelPainter = () => {
     isLoading,
     paintPixel,
     loadPixelData,
-    loadPaintingFee
+    loadPaintingFee,
+    isContractDeployed: isContractDeployed()
   };
 };
 
